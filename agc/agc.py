@@ -12,6 +12,7 @@
 #    http://www.gnu.org/licenses/gpl-3.0.html
 
 """OTU clustering"""
+# Modules
 
 import argparse
 import sys
@@ -21,22 +22,25 @@ import statistics
 from collections import Counter
 # https://github.com/briney/nwalign3
 # ftp://ftp.ncbi.nih.gov/blast/matrices/
-import nwalign3 as nw
+#import nwalign3 as nw
 
-__author__ = "Your Name"
+__author__ = "Fatoumata Binta BARRY"
 __copyright__ = "Universite Paris Diderot"
-__credits__ = ["Your Name"]
+__credits__ = ["fatoumata Binta BARRY"]
 __license__ = "GPL"
 __version__ = "1.0.0"
-__maintainer__ = "Your Name"
-__email__ = "your@email.fr"
+__maintainer__ = "Fatoumata Binta BARRY"
+__email__ = "fatoumatabinta.barry@outlook.fr"
 __status__ = "Developpement"
 
 
+# Fonctions
+
+
 def isfile(path):
-    """Check if path is an existing file.
+    """verifie que l'existence du fichier
       :Parameters:
-          path: Path to the file
+          path: chemin du fichier
     """
     if not os.path.isfile(path):
         if os.path.isdir(path):
@@ -48,8 +52,8 @@ def isfile(path):
 
 
 def get_arguments():
-    """Retrieves the arguments of the program.
-      Returns: An object that contains the arguments
+    """Recupère les arguments du programme
+      Returns: un objet contenant les arguments
     """
     # Parsing arguments
     parser = argparse.ArgumentParser(description=__doc__, usage=
@@ -69,6 +73,59 @@ def get_arguments():
                         default="OTU.fasta", help="Output file")
     return parser.parse_args()
 
+
+# 1 Dé-duplication en séquence "complète"
+
+def read_fasta(amplicon_file, minseqlen):
+    """ prend deux arguments correspondant au fichier fasta et à
+    la longueur minimale des séquences et retourne un générateur 
+    de séquences de longueur l >= minseqlen: yield sequence """
+    prot_dict = {}
+    with gzip.open(amplicon_file, "rt") as amplicon:
+        prot_dict = {}
+        prot_id = ""
+        for line in amplicon:
+            if line.startswith(">"):
+                prot_id = line[1:].split()[0]
+                prot_dict[prot_id] = ""
+            else:
+                prot_dict[prot_id] += line.strip()
+        for i in prot_dict:
+            sequence = prot_dict[i]
+            if len(sequence) >= minseqlen:
+                yield sequence
+
+
+def dereplication_fulllength(amplicon, minseqlen, mincount):
+    """ Prend trois arguments correspondant au fichier fasta, 
+        la longueur minimale des séquences et leur comptage minimum.
+        Elle fait appel au générateur fourni par read_fasta et retourne
+        un générateur des séquences uniques ayant une occurrence O>=mincount
+        ainsi que leur occurrence.
+    """
+        
+    amplicon_unique = {}
+    for seq in read_fasta(amplicon, minseqlen):
+        if seq in amplicon_unique:
+            amplicon_unique[seq] +=1
+        else:
+            amplicon_unique[seq] =1
+    amplicon_filtre = []
+    for seq in amplicon_unique:
+        occ = amplicon_unique[seq]
+        if occ >= mincount:
+            seq_count = [seq, occ]
+            amplicon_filtre.append(seq_count)
+    amplicon_filtre.sort(key= lambda i : i[1], reverse = True)
+    for i in amplicon_filtre:
+        yield i
+
+
+
+
+
+
+
 #==============================================================
 # Main program
 #==============================================================
@@ -81,4 +138,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    gi=dereplication_fulllength("essai.gz", 400, 2)
+    #print(gi)
+     
+    print(next(gi), "\n")
+    print(next(gi), "\n")
